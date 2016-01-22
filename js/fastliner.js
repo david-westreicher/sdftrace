@@ -15,11 +15,22 @@ var FastLiner = function(size){
 	    stencilBuffer: false,
 	    minFilter: THREE.NearestFilter,
 	    magFilter: THREE.NearestFilter,
+	    format: THREE.RGBFormat,
+	    type:THREE.FloatType
+	});
+    var initTexData = new Float32Array(datasize*datasize*4);
+    var initTex = new THREE.DataTexture(initTexData, datasize, datasize, THREE.RGBAFormat, THREE.FloatType);
+    var randData = new Float32Array(datasize*datasize*4);
+    var randTex = new THREE.DataTexture(randData, datasize, datasize, THREE.RGBAFormat, THREE.FloatType);
+    //TODO use randomness for diffusnes
+	var posTex1 = new THREE.WebGLRenderTarget(datasize, datasize, { 
+	    depthBuffer: false,
+	    stencilBuffer: false,
+	    minFilter: THREE.NearestFilter,
+	    magFilter: THREE.NearestFilter,
 	    format: THREE.RGBAFormat,
 	    type:THREE.FloatType
 	});
-    var posData1 = new Float32Array(datasize*datasize*4);
-    var posTex1 = new THREE.DataTexture(posData1, datasize, datasize, THREE.RGBAFormat, THREE.FloatType);
 	var posTex2 = new THREE.WebGLRenderTarget(datasize, datasize, { 
 	    depthBuffer: false,
 	    stencilBuffer: false,
@@ -45,7 +56,7 @@ var FastLiner = function(size){
 		depthWrite: false,
 		depthTest: false,
 		transparent: true,
-		//blending: THREE.AdditiveBlending
+		blending: THREE.AdditiveBlending
 	} );
     var lines = new THREE.LineSegments(geometry,lineShader);
     lines.position.x = -size/2;
@@ -56,7 +67,7 @@ var FastLiner = function(size){
 
 
     var rayuniforms = {
-		rayinfo: { type: "t", value: posTex1 },
+		rayinfo: { type: "t", value: null },
 		sdf: { type: "t", value: null },
     }
 	var rayShader = new THREE.ShaderMaterial( {
@@ -67,22 +78,50 @@ var FastLiner = function(size){
 	} );
     var rayPass = createFullScreenScene(rayShader);
 
-    self.update = function(renderer,sdftex){
-        for(var i = 0;i<posData1.length;i+=4){
-            var angle = Math.random()*2*Math.PI;
-            var dir = new THREE.Vector2(Math.cos(angle),Math.sin(angle));
-            posData1[i+0] = size/2;
-            posData1[i+1] = size/2;
-            posData1[i+2] = dir.x;
-            posData1[i+3] = dir.y;
-        }
-        posTex1.needsUpdate = true;
+	var initShader = new THREE.ShaderMaterial( {
+		uniforms: { initTex: {type: "t", value:initTex}},
+		vertexShader: document.getElementById( 'vertexFullscreen' ).textContent,
+		fragmentShader: document.getElementById( 'initRay' ).textContent,
+		depthWrite: false
+	} );
+    var initPass = createFullScreenScene(initShader);
 
-        rayuniforms.sdf.value = sdftex;
-	    renderer.render(rayPass,rtCam,posTex2,true);
-	    renderer.render(scene,rtCam,renderTarget,true);
+    var sampleNum =0;
+    var mid = [size/2,size/2];
+    self.update = function(renderer,sdftex){
+        for(var i = 0;i<initTexData.length;i+=4){
+            var angle = Math.random()*2*Math.PI;
+            var angle2 = Math.random()*2*Math.PI;
+            var radius = Math.random()*20;
+            initTexData[i+0] = mid[0]+Math.cos(angle2)*radius;
+            initTexData[i+1] = mid[1]+Math.sin(angle2)*radius;
+            initTexData[i+2] = Math.cos(angle);
+            initTexData[i+3] = Math.sin(angle);
+        }
+        initTex.needsUpdate = true;
+	    renderer.render(initPass,rtCam,posTex1,true);
+
+        for(var i=0;i<10;i++){
+            rayuniforms.rayinfo.value = posTex1;
+            rayuniforms.sdf.value = sdftex;
+	        renderer.render(rayPass,rtCam,posTex2,true);
+	        renderer.render(scene,rtCam,renderTarget,true);
+	        var tmp = posTex1;
+	        posTex1 = posTex2;
+	        posTex2 = tmp;
+	        sampleNum+=initTexData.length;
+	    }
     }
     self.getTex = function(){
         return renderTarget;
+    }
+    self.getSampleNum = function(){
+        return sampleNum;
+    }
+    self.reset = function(renderer,x,y){
+        mid[0] = x+size/2;
+        mid[1] = -y+size/2;
+        renderer.clearTarget(renderTarget,true,false,false);
+        sampleNum = 0;
     }
 }
