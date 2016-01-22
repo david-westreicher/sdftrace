@@ -2,8 +2,10 @@ if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
 var stats;
 
-var cameraRTT, camera, sceneRTT, sceneScreen, scene, renderer;
-var rtTexture, sdfShader;
+var cam, drawSDF, renderer;
+var rtPing, rtPong;
+var drawCirclePass, drawCircleUs;
+var resetPass;
 
 var mouseX = 0, mouseY = 0;
 
@@ -15,67 +17,85 @@ var size = 400;
 init();
 animate();
 
-function makeRTTScene(){
-	sdfShader = new THREE.ShaderMaterial( {
-		uniforms: {
-		    lightpos: {type:"v3", value: new THREE.Vector3(size/2,size/2,size/2)}
-		},
-		vertexShader: document.getElementById( 'vertexFillSDF' ).textContent,
+function createFullScreenScene(shader){
+	var plane = new THREE.PlaneBufferGeometry(2,2);
+	var quad = new THREE.Mesh( plane, shader );
+	var tmpScene = new THREE.Scene();
+	tmpScene.add( quad );
+	return tmpScene;
+}
+
+function makeDrawCirclePass(){
+    drawCircleUs = {
+		pingpong: { type: "t", value: rtPong },
+		lightpos: {type:"v3", value: new THREE.Vector3(size/2,size/2,size/2)}
+    }
+	var shader = new THREE.ShaderMaterial( {
+		uniforms: drawCircleUs,
+		vertexShader: document.getElementById( 'vertexFullscreen' ).textContent,
 		fragmentShader: document.getElementById( 'fragmentFillSDF' ).textContent,
 		depthWrite: false
 	} );
-	var plane = new THREE.PlaneBufferGeometry(2,2);
-	var quad = new THREE.Mesh( plane, sdfShader );
-	sceneRTT.add( quad );
+	return createFullScreenScene(shader);
 }
 
-function makeScreenScene(){
-	var materialScreen = new THREE.ShaderMaterial( {
-		uniforms: { 
-		    tDiffuse: { type: "t", value: rtTexture },
-		    size: { type: "f", value: size },
+function makeResetPass(){
+	var shader = new THREE.ShaderMaterial({
+		uniforms: {
+		    val: {type:"f", value: size*size}
 		},
+		vertexShader: document.getElementById( 'vertexFullscreen' ).textContent,
+		fragmentShader: document.getElementById( 'fragmentResetSDF' ).textContent,
+		depthWrite: false
+	});
+	return createFullScreenScene(shader);
+}
+
+function makeDrawPass(){
+    var drawSDFUs = {
+		    tex: { type: "t", value: rtPing },
+		    size: { type: "f", value: size },
+	}
+	var materialScreen = new THREE.ShaderMaterial( {
+		uniforms: drawSDFUs,
 		vertexShader: document.getElementById( 'vertexShader' ).textContent,
 		fragmentShader: document.getElementById( 'fragmentDrawSDF' ).textContent,
 		depthWrite: false
 	} );
 	var plane = new THREE.PlaneBufferGeometry( size,size );
 	var quad = new THREE.Mesh( plane, materialScreen );
-	sceneScreen.add( quad );
-}
-
-function makeScene(){
-	var geometry = new THREE.SphereGeometry( 10, 64, 32 ),
-		material2 = new THREE.MeshBasicMaterial( { color: 0xffffff, map: rtTexture } );
-	mesh = new THREE.Mesh( geometry, material2 );
-	mesh.rotation.y = - Math.PI / 2;
-	scene.add( mesh );
+	var tmpScene = new THREE.Scene();
+	tmpScene.add( quad );
+	return tmpScene;
 }
 
 function init() {
 
 	var container = document.getElementById( 'container' );
 
-	camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 10000 );
-	camera.position.z = 400;
+	cam = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, -10000, 10000 );
+	cam.position.z = 100;
 
-	cameraRTT = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, -10000, 10000 );
-	cameraRTT.position.z = 100;
-
-	scene = new THREE.Scene();
-	sceneRTT = new THREE.Scene();
-	sceneScreen = new THREE.Scene();
-
-	rtTexture = new THREE.WebGLRenderTarget(size,size, { 
+	rtPing = new THREE.WebGLRenderTarget(size,size, { 
+	    depthBuffer: false,
+	    stencilBuffer: false,
+	    minFilter: THREE.NearestFilter,
+	    magFilter: THREE.NearestFilter,
+	    format: THREE.RGBFormat,
+	    type:THREE.FloatType
+	});
+	rtPong = new THREE.WebGLRenderTarget(size,size, { 
+	    depthBuffer: false,
+	    stencilBuffer: false,
 	    minFilter: THREE.NearestFilter,
 	    magFilter: THREE.NearestFilter,
 	    format: THREE.RGBFormat,
 	    type:THREE.FloatType
 	});
 
-	makeScene();
-	makeScreenScene();
-	makeRTTScene();
+	drawSDF = makeDrawPass();
+	drawCirclePass = makeDrawCirclePass();
+	resetPass = makeResetPass();
 
 	renderer = new THREE.WebGLRenderer();
 	renderer.setPixelRatio( window.devicePixelRatio );
@@ -90,7 +110,6 @@ function init() {
 	container.appendChild( stats.domElement );
 
 	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-
 }
 
 function onDocumentMouseMove( event ) {
@@ -105,26 +124,22 @@ function animate() {
 }
 
 function generateSDF() {
-    sdfShader.uniforms.lightpos.value.x = mouseX+size/2;
-    sdfShader.uniforms.lightpos.value.y = -mouseY+size/2;
-    sdfShader.uniforms.lightpos.value.z = size/4;
-	renderer.render( sceneRTT, cameraRTT, rtTexture, true );
+    // render dist size*size into rtPong
+	renderer.render( resetPass, cam, rtPong, true );
+    drawCircleUs.lightpos.value.x = mouseX+size/2;
+    drawCircleUs.lightpos.value.y = -mouseY+size/2;
+    drawCircleUs.lightpos.value.z = size/8;
+    drawCircleUs.pingpong.value = rtPong;
+	renderer.render( drawCirclePass, cam, rtPing, true );
 }
 
 var isinit = true;
 function render() {
-	camera.lookAt( scene.position );
 	renderer.clear();
 	if(isinit){
-	    generateSDF();
+	    //generateSDF();
 	    isinit = false;
 	}
 	generateSDF();
-
-	// Render first scene into texture
-	// Render full screen quad with generated texture
-	renderer.render( sceneScreen, cameraRTT );
-	// Render second scene to screen
-	// (using first scene as regular texture)
-	//renderer.render( scene, camera );
+	renderer.render( drawSDF, cam );
 }
