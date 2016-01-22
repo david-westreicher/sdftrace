@@ -37,15 +37,18 @@
 		<script src="js/libs/Detector.js"></script>
 		<script src="js/libs/stats.min.js"></script>
 
-
 		<script id="fragmentFillSDF" type="x-shader/x-fragment">
 			uniform sampler2D pingpong;
-            uniform vec3 lightpos;
+            uniform vec3 circle;
 			varying vec2 vUv;
+
+			float getdist(){
+			    return length(gl_FragCoord.xy-circle.xy)-circle.z;
+			}
 
 			void main() {
 			    float olddist = texture2D(pingpong, vUv).r;
-			    float dist = length(gl_FragCoord.xy-lightpos.xy)-lightpos.z;
+			    float dist = getdist();
 			    float newdist = 0.0;
 			    if(olddist<0.0){
 			        if(dist<0.0)
@@ -59,7 +62,36 @@
 			            newdist = min(dist,olddist);
 			    }
 				gl_FragColor = vec4(newdist,0.0,0.0,1.0);
-				//gl_FragColor = vec4(gl_FragCoord.xy/10.0,0.0,1.0);
+			}
+		</script>
+		<script id="fragmentDrawRectSDF" type="x-shader/x-fragment">
+			uniform sampler2D pingpong;
+            uniform vec4 rect;
+			varying vec2 vUv;
+
+			float getdist(){
+			    vec2 dist = abs(gl_FragCoord.xy-rect.xy)-rect.zw;
+			    if(dist.x<0.0 && dist.y<0.0)
+			        return max(dist.x,dist.y);
+			    return length(clamp(dist,0.0,10000.0));
+			}
+
+			void main() {
+			    float olddist = texture2D(pingpong, vUv).r;
+			    float dist = getdist();
+			    float newdist = 0.0;
+			    if(olddist<0.0){
+			        if(dist<0.0)
+			            newdist = max(dist,olddist);
+			        else
+			            newdist = max(-dist,olddist);
+			    }else{
+			        if(dist<0.0)
+			            newdist = max(dist,-olddist);
+			        else
+			            newdist = min(dist,olddist);
+			    }
+				gl_FragColor = vec4(newdist,0.0,0.0,1.0);
 			}
 		</script>
 		<script id="vertexFullscreen" type="x-shader/x-fragment">
@@ -83,8 +115,12 @@
 			varying vec2 vUv;
 
 			void main() {
-				float dist = texture2D( tex, vUv ).r/size;
-				gl_FragColor = vec4(0.0,max(-dist,0.0),max(dist,0.0),1.0);
+				float dist = texture2D( tex, vUv ).r;
+				float col = 4.0*dist/size;
+				if(dist<1.0 && dist>-1.0)
+				    gl_FragColor = vec4(1.0);
+				else
+				    gl_FragColor = vec4(0.0,max(-col,0.0),max(col,0.0),1.0);
 			}
 		</script>
 		<script id="vertexShader" type="x-shader/x-vertex">
