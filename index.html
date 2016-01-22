@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - render-to-texture</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				color: #ffffff;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				font-weight: bold;
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				position: absolute;
+				top: 0px; width: 100%;
+				padding: 5px;
+			}
+
+			a {
+				color: #ffffff;
+			}
+
+		</style>
+	</head>
+	<body>
+
+		<div id="container"></div>
+		<div id="info"><a href="http://threejs.org" target="_blank">three.js</a> render-to-texture webgl example</div>
+
+		<script src="js/libs/three.min.js"></script>
+		<script src="js/libs/Detector.js"></script>
+		<script src="js/libs/stats.min.js"></script>
+
+		<script id="fragment_shader_screen" type="x-shader/x-fragment">
+			varying vec2 vUv;
+			uniform sampler2D tDiffuse;
+
+			void main() {
+				gl_FragColor = texture2D( tDiffuse, vUv );
+			}
+
+		</script>
+		<script id="vertexShader" type="x-shader/x-vertex">
+			varying vec2 vUv;
+
+			void main() {
+				vUv = uv;
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+			}
+
+		</script>
+
+		<script src="js/renderer.js"></script>
+	</body>
+</html>
