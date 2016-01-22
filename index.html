@@ -33,7 +33,7 @@
 		<div id="container"></div>
 		<div id="info"><a href="http://threejs.org" target="_blank">three.js</a> render-to-texture webgl example</div>
 
-		<script src="js/libs/three.min.js"></script>
+		<script src="js/libs/three.js"></script>
 		<script src="js/libs/Detector.js"></script>
 		<script src="js/libs/stats.min.js"></script>
 
@@ -129,6 +129,22 @@
 			void main() {
 				vUv = uv;
 				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+			}
+		</script>
+		<script id="vertexLine" type="x-shader/x-vertex">
+            uniform sampler2D posTex1;
+            uniform sampler2D posTex2;
+
+			void main() {
+			    vec3 pos1 = texture2D(posTex1, position.xy).rgb;
+			    vec3 pos2 = texture2D(posTex2, position.xy).rgb;
+			    vec3 realpos = mix(pos1,pos2,position.z);
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( realpos, 1.0 );
+			}
+		</script>
+		<script id="fragmentLine" type="x-shader/x-fragment">
+			void main() {
+				gl_FragColor = vec4(1.0,1.0,1.0,0.01);
 			}
 		</script>
 

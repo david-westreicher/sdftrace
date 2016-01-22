@@ -101,19 +101,19 @@ var SDF = function(size){
     }
 
     self.clear = function(renderer){
-	    renderer.render( self.resetPass, self.dummycam, self.pingpong.current(), true );
+	    renderer.render( self.resetPass, self.dummycam, self.pingpong.current());
     }
 
     self.drawCircle = function(renderer,x,y,size){
         self.drawCircleUs.circle.value.set(x,y,size);
         self.drawCircleUs.pingpong.value = self.pingpong.current();
-	    renderer.render( self.drawCirclePass, self.dummycam, self.pingpong.next(), true );
+	    renderer.render( self.drawCirclePass, self.dummycam, self.pingpong.next());
     }
 
     self.drawRect = function(renderer,x,y,width,height){
         self.drawRectUs.rect.value.set(x,y,width,height);
         self.drawRectUs.pingpong.value = self.pingpong.current();
-	    renderer.render( self.drawRectPass, self.dummycam, self.pingpong.next(), true );
+	    renderer.render( self.drawRectPass, self.dummycam, self.pingpong.next());
     }
 
     self.draw = function(renderer,cam){
