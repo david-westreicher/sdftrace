@@ -37,24 +37,36 @@
 		<script src="js/libs/Detector.js"></script>
 		<script src="js/libs/stats.min.js"></script>
 
-		<script id="fragment_shader_screen" type="x-shader/x-fragment">
+
+		<script id="fragmentFillSDF" type="x-shader/x-fragment">
+            uniform vec3 lightpos;
+			void main() {
+			    float dist = length(gl_FragCoord.xy-lightpos.xy)-lightpos.z;
+				gl_FragColor = vec4(dist,0.0,0.0,1.0);
+				//gl_FragColor = vec4(gl_FragCoord.xy/10.0,0.0,1.0);
+			}
+		</script>
+		<script id="vertexFillSDF" type="x-shader/x-fragment">
+			void main() {
+				gl_Position = vec4( position, 1.0 );
+			}
+		</script>
+		<script id="fragmentDrawSDF" type="x-shader/x-fragment">
 			varying vec2 vUv;
 			uniform sampler2D tDiffuse;
+			uniform float size;
 
 			void main() {
-				gl_FragColor = texture2D( tDiffuse, vUv );
+				float dist = texture2D( tDiffuse, vUv ).r/size;
+				gl_FragColor = vec4(0.0,max(-dist,0.0),max(dist,0.0),1.0);
 			}
-
 		</script>
 		<script id="vertexShader" type="x-shader/x-vertex">
 			varying vec2 vUv;
-
 			void main() {
 				vUv = uv;
 				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-
 			}
-
 		</script>
 
 		<script src="js/renderer.js"></script>
