@@ -27,9 +27,7 @@ var PingPong = function(){
 var SDF = function(size){
     var self = this;
     self.pingpong = new PingPong();
-    self.size = size;
 	self.dummycam = new THREE.OrthographicCamera(0,0);
-	self.drawSDF = makeDrawPass();
 	self.drawCirclePass = makeDrawCirclePass();
 	self.drawRectPass = makeDrawRectPass();
 	self.resetPass = makeResetPass();
@@ -82,24 +80,6 @@ var SDF = function(size){
 	    return createFullScreenScene(shader);
     }
 
-    function makeDrawPass(){
-        self.drawSDFUs = {
-		        tex: { type: "t", value: self.pingpong.current() },
-		        size: { type: "f", value: size },
-	    }
-	    var materialScreen = new THREE.ShaderMaterial( {
-		    uniforms: self.drawSDFUs,
-		    vertexShader: document.getElementById( 'vertexShader' ).textContent,
-		    fragmentShader: document.getElementById( 'fragmentDrawSDF' ).textContent,
-		    depthWrite: false
-	    } );
-	    var plane = new THREE.PlaneBufferGeometry( size,size );
-	    var quad = new THREE.Mesh( plane, materialScreen );
-	    var tmpScene = new THREE.Scene();
-	    tmpScene.add( quad );
-	    return tmpScene;
-    }
-
     self.clear = function(renderer){
 	    renderer.render( self.resetPass, self.dummycam, self.pingpong.current());
     }
@@ -116,8 +96,7 @@ var SDF = function(size){
 	    renderer.render( self.drawRectPass, self.dummycam, self.pingpong.next());
     }
 
-    self.draw = function(renderer,cam){
-        self.drawSDFUs.tex.value = self.pingpong.current();
-	    renderer.render( self.drawSDF, cam );
+    self.getTex = function(){
+        return self.pingpong.current();
     }
 }

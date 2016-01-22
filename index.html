@@ -134,21 +134,70 @@
 		<script id="vertexLine" type="x-shader/x-vertex">
             uniform sampler2D posTex1;
             uniform sampler2D posTex2;
+            varying float bias;
+            varying vec2 dir;
 
 			void main() {
-			    vec3 pos1 = texture2D(posTex1, position.xy).rgb;
-			    vec3 pos2 = texture2D(posTex2, position.xy).rgb;
-			    vec3 realpos = mix(pos1,pos2,position.z);
-				gl_Position = projectionMatrix * modelViewMatrix * vec4( realpos, 1.0 );
+			    vec2 pos1 = texture2D(posTex1, position.xy).xy;
+			    vec2 pos2 = texture2D(posTex2, position.xy).xy;
+			    vec2 realpos = mix(pos1.xy,pos2.xy,position.z);
+			    vec2 diff = pos1-pos2;
+			    dir = texture2D(posTex2, position.xy).zw;
+			    bias = length(diff)/max(abs(diff.x),abs(diff.y));
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( realpos,0.0, 1.0 );
 			}
 		</script>
 		<script id="fragmentLine" type="x-shader/x-fragment">
+            varying float bias;
+            varying vec2 dir;
+
 			void main() {
-				gl_FragColor = vec4(1.0,1.0,1.0,0.01);
+				gl_FragColor = vec4(dir/2.0+0.5,0.0,0.001*bias);
+				//gl_FragColor = vec4(1.0,1.0,1.0,0.001*bias);
+			}
+		</script>
+		<script id="fragmentRay" type="x-shader/x-fragment">
+			uniform sampler2D rayinfo;
+			uniform sampler2D sdf;
+			varying vec2 vUv;
+			const vec3 offset = vec3(0.00166,0.0,-0.00166);
+
+            vec2 getnormal(vec2 pos){
+			    float left = texture2D(sdf,pos+offset.zy).r;
+			    float right = texture2D(sdf,pos+offset.xy).r;
+			    float up = texture2D(sdf,pos+offset.yx).r;
+			    float down = texture2D(sdf,pos+offset.yz).r;
+			    vec2 norm = vec2((right-left), -(down-up));
+			    return normalize(norm);
+            }
+
+			vec2 reflect2(vec2 pos, vec2 dir){
+			    vec2 n = getnormal(pos);
+			    return reflect(dir,n);
+			}
+
+			void main() {
+			    vec4 rinfo = texture2D(rayinfo,vUv);
+			    vec2 pos = rinfo.xy;
+			    vec2 dir = rinfo.zw;
+			    vec2 newdir = vec2(0.0,0.0);
+			    for(int i=0;i<50;i++){
+			        if(pos.x<0.0||pos.y<0.0||pos.x>600.0||pos.y>600.0)
+			            break;
+			        float val = texture2D(sdf,pos/600.0).r;
+			        if(val<0.5){
+			            pos-=dir;
+			            newdir = reflect2(pos/600.0,dir);
+			            break;
+			        }
+			        pos+=dir*val;
+			    }
+				gl_FragColor = vec4(pos,newdir);
 			}
 		</script>
 
 		<script src="js/sdf.js"></script>
+		<script src="js/fastliner.js"></script>
 		<script src="js/renderer.js"></script>
 	</body>
 </html>
