@@ -21,6 +21,11 @@
 				top: 0px; width: 100%;
 				padding: 5px;
 			}
+			#perf {
+				position: absolute;
+				top: 20px; width: 100%;
+				padding: 5px;
+			}
 
 			a {
 				color: #ffffff;
@@ -32,6 +37,7 @@
 
 		<div id="container"></div>
 		<div id="info"><a href="http://threejs.org" target="_blank">three.js</a> render-to-texture webgl example</div>
+		<div id="perf">0 rays/sec</div>
 
 		<script src="js/libs/three.js"></script>
 		<script src="js/libs/Detector.js"></script>
@@ -67,13 +73,14 @@
 		<script id="fragmentDrawRectSDF" type="x-shader/x-fragment">
 			uniform sampler2D pingpong;
             uniform vec4 rect;
+            uniform float border;
 			varying vec2 vUv;
 
 			float getdist(){
 			    vec2 dist = abs(gl_FragCoord.xy-rect.xy)-rect.zw;
 			    if(dist.x<0.0 && dist.y<0.0)
-			        return max(dist.x,dist.y)-20.0;
-			    return length(max(dist,vec2(0.0)))-20.0;
+			        return max(dist.x,dist.y)-border;
+			    return length(max(dist,vec2(0.0)))-border;
 			}
 
 			void main() {
@@ -157,10 +164,11 @@
 			}
 		</script>
 		<script id="fragmentRay" type="x-shader/x-fragment">
+			//const vec3 offset = vec3(0.00166,0.0,-0.00166);
+			//const float size = 600.0;
 			uniform sampler2D rayinfo;
 			uniform sampler2D sdf;
 			varying vec2 vUv;
-			const vec3 offset = vec3(0.00166,0.0,-0.00166);
 
             vec2 getnormal(vec2 pos){
 			    float left = texture2D(sdf,pos+offset.zy).r;
@@ -176,13 +184,13 @@
 			    vec2 pos = rinfo.xy;
 			    vec2 dir = rinfo.zw;
 			    vec2 newdir = vec2(0.0,0.0);
-			    for(int i=0;i<50;i++){
-			        if(pos.x<0.0||pos.y<0.0||pos.x>600.0||pos.y>600.0)
-			            break;
-			        float val = texture2D(sdf,pos/600.0).r;
+			    for(int i=0;i<30;i++){
+                    if(pos.x<0.0||pos.y<0.0||pos.x>size||pos.y>size)
+                        break;
+			        float val = texture2D(sdf,pos/size).r;
 			        if(val<0.5){
 			            pos-=dir;
-			            newdir = reflect(dir,getnormal(pos/600.0));
+			            newdir = reflect(dir,getnormal(pos/size));
 			            break;
 			        }
 			        pos+=dir*val;

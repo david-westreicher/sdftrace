@@ -73,7 +73,10 @@ var FastLiner = function(size){
 	var rayShader = new THREE.ShaderMaterial( {
 		uniforms: rayuniforms,
 		vertexShader: document.getElementById( 'vertexFullscreen' ).textContent,
-		fragmentShader: document.getElementById( 'fragmentRay' ).textContent,
+		fragmentShader: 
+		    "const vec3 offset = vec3("+(1.0/size)+",0,"+(-1.0/size)+");\n"+
+		    "const float size = "+size+".0;\n"+
+		    document.getElementById( 'fragmentRay' ).textContent,
 		depthWrite: false
 	} );
     var rayPass = createFullScreenScene(rayShader);
@@ -101,7 +104,7 @@ var FastLiner = function(size){
         initTex.needsUpdate = true;
 	    renderer.render(initPass,rtCam,posTex1,true);
 
-        for(var i=0;i<10;i++){
+        for(var i=0;i<2;i++){
             rayuniforms.rayinfo.value = posTex1;
             rayuniforms.sdf.value = sdftex;
 	        renderer.render(rayPass,rtCam,posTex2,true);

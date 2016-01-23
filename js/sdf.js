@@ -6,8 +6,8 @@ var PingPong = function(){
 	    var rt = new THREE.WebGLRenderTarget(size,size, { 
 	        depthBuffer: false,
 	        stencilBuffer: false,
-	        minFilter: THREE.NearestFilter,
-	        magFilter: THREE.NearestFilter,
+	        minFilter: THREE.LinearFilter,
+	        magFilter: THREE.LinearFilter,
 	        format: THREE.RGBFormat,
 	        type:THREE.FloatType
 	    });
@@ -57,7 +57,8 @@ var SDF = function(size){
     function makeDrawRectPass(){
         self.drawRectUs = {
 		    pingpong: { type: "t", value: self.pingpong.current() },
-		    rect: {type:"v4", value: new THREE.Vector4(size/2,size/2,size/2,size/2)}
+		    rect: {type:"v4", value: new THREE.Vector4(size/2,size/2,size/2,size/2)},
+		    border: {type:"f", value: 0.0}
         }
 	    var shader = new THREE.ShaderMaterial( {
 		    uniforms: self.drawRectUs,
@@ -90,9 +91,13 @@ var SDF = function(size){
 	    renderer.render( self.drawCirclePass, self.dummycam, self.pingpong.next());
     }
 
-    self.drawRect = function(renderer,x,y,width,height){
+    self.drawRect = function(renderer,x,y,width,height,border){
         self.drawRectUs.rect.value.set(x,y,width,height);
         self.drawRectUs.pingpong.value = self.pingpong.current();
+        if(!border)
+            self.drawRectUs.border.value = 0.0;
+        else
+            self.drawRectUs.border.value = border;
 	    renderer.render( self.drawRectPass, self.dummycam, self.pingpong.next());
     }
 
