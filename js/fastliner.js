@@ -15,7 +15,7 @@ var FastLiner = function(size){
 	    stencilBuffer: false,
 	    minFilter: THREE.NearestFilter,
 	    magFilter: THREE.NearestFilter,
-	    format: THREE.RGBFormat,
+	    format: THREE.RGBAFormat,
 	    type:THREE.FloatType
 	});
     var initTexData = new Float32Array(datasize*datasize*4);

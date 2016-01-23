@@ -8,7 +8,7 @@ var PingPong = function(){
 	        stencilBuffer: false,
 	        minFilter: THREE.LinearFilter,
 	        magFilter: THREE.LinearFilter,
-	        format: THREE.RGBFormat,
+	        format: THREE.RGBAFormat,
 	        type:THREE.FloatType
 	    });
 	    self.rts.push(rt);
