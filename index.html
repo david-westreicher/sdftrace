@@ -42,65 +42,6 @@
 		<script src="js/libs/three.js"></script>
 		<script src="js/libs/Detector.js"></script>
 		<script src="js/libs/stats.min.js"></script>
-
-		<script id="fragmentFillSDF" type="x-shader/x-fragment">
-			uniform sampler2D pingpong;
-            uniform vec3 circle;
-			varying vec2 vUv;
-
-			float getdist(){
-			    return length(gl_FragCoord.xy-circle.xy)-circle.z;
-			}
-
-			void main() {
-			    float olddist = texture2D(pingpong, vUv).r;
-			    float dist = getdist();
-			    float newdist = 0.0;
-			    if(olddist<0.0){
-			        if(dist<0.0)
-			            newdist = max(dist,olddist);
-			        else
-			            newdist = max(-dist,olddist);
-			    }else{
-			        if(dist<0.0)
-			            newdist = max(dist,-olddist);
-			        else
-			            newdist = min(dist,olddist);
-			    }
-				gl_FragColor = vec4(newdist,0.0,0.0,1.0);
-			}
-		</script>
-		<script id="fragmentDrawRectSDF" type="x-shader/x-fragment">
-			uniform sampler2D pingpong;
-            uniform vec4 rect;
-            uniform float border;
-			varying vec2 vUv;
-
-			float getdist(){
-			    vec2 dist = abs(gl_FragCoord.xy-rect.xy)-rect.zw;
-			    if(dist.x<0.0 && dist.y<0.0)
-			        return max(dist.x,dist.y)-border;
-			    return length(max(dist,vec2(0.0)))-border;
-			}
-
-			void main() {
-			    float olddist = texture2D(pingpong, vUv).r;
-			    float dist = getdist();
-			    float newdist = 0.0;
-			    if(olddist<0.0){
-			        if(dist<0.0)
-			            newdist = max(dist,olddist);
-			        else
-			            newdist = max(-dist,olddist);
-			    }else{
-			        if(dist<0.0)
-			            newdist = max(dist,-olddist);
-			        else
-			            newdist = min(dist,olddist);
-			    }
-				gl_FragColor = vec4(newdist,0.0,0.0,1.0);
-			}
-		</script>
 		<script id="vertexFullscreen" type="x-shader/x-fragment">
 			varying vec2 vUv;
 
@@ -185,10 +126,10 @@
 			    vec2 dir = rinfo.zw;
 			    vec2 newdir = vec2(0.0,0.0);
 			    for(int i=0;i<30;i++){
-                    if(pos.x<0.0||pos.y<0.0||pos.x>size||pos.y>size)
-                        break;
+                    //if(pos.x<0.0||pos.y<0.0||pos.x>size||pos.y>size)
+                        //break;
 			        float val = texture2D(sdf,pos/size).r;
-			        if(val<0.5){
+			        if(val<0.1){
 			            pos-=dir;
 			            newdir = reflect(dir,getnormal(pos/size));
 			            break;

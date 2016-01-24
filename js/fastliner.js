@@ -100,6 +100,8 @@ var FastLiner = function(size){
             initTexData[i+1] = mid[1]+Math.sin(angle2)*radius;
             initTexData[i+2] = Math.cos(angle);
             initTexData[i+3] = Math.sin(angle);
+            initTexData[i+2] = Math.cos(0);
+            initTexData[i+3] = Math.sin(0);
         }
         initTex.needsUpdate = true;
 	    renderer.render(initPass,rtCam,posTex1,true);

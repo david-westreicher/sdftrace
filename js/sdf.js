@@ -24,6 +24,28 @@ var PingPong = function(){
     }
 };
 
+var sdfDrawObjectShader = ''+
+    'uniform sampler2D pingpong;\n'+
+    'varying vec2 vUv;\n'+
+    '\n'+
+    'void main() {\n'+
+    '	float olddist = texture2D(pingpong, vUv).r;\n'+
+    '	float dist = getdist();\n'+
+    '	float newdist = 0.0;\n'+
+    '	if(olddist<0.0){\n'+
+    '		if(dist<0.0)\n'+
+    '		    newdist = max(dist,olddist);\n'+
+    '		else\n'+
+    '		    newdist = max(-dist,olddist);\n'+
+    '	}else{\n'+
+    '		if(dist<0.0)\n'+
+    '		    newdist = max(dist,-olddist);\n'+
+    '		else\n'+
+    '		    newdist = min(dist,olddist);\n'+
+    '	}\n'+
+    '	gl_FragColor = vec4(newdist,0.0,0.0,1.0);\n'+
+    '}\n';
+
 var SDF = function(size){
     var self = this;
     self.pingpong = new PingPong();
@@ -48,7 +70,12 @@ var SDF = function(size){
 	    var shader = new THREE.ShaderMaterial( {
 		    uniforms: self.drawCircleUs,
 		    vertexShader: document.getElementById( 'vertexFullscreen' ).textContent,
-		    fragmentShader: document.getElementById( 'fragmentFillSDF' ).textContent,
+		    fragmentShader:
+                'uniform vec3 circle;\n'+
+                'float getdist(){\n'+
+                '	return length(gl_FragCoord.xy-circle.xy)-circle.z;\n'+
+                '}\n'+
+		        sdfDrawObjectShader,
 		    depthWrite: false
 	    } );
 	    return createFullScreenScene(shader);
@@ -63,7 +90,16 @@ var SDF = function(size){
 	    var shader = new THREE.ShaderMaterial( {
 		    uniforms: self.drawRectUs,
 		    vertexShader: document.getElementById( 'vertexFullscreen' ).textContent,
-		    fragmentShader: document.getElementById( 'fragmentDrawRectSDF' ).textContent,
+		    fragmentShader: 
+                'uniform vec4 rect;\n'+
+                'uniform float border;\n'+
+                'float getdist(){\n'+
+                '	vec2 dist = abs(gl_FragCoord.xy-rect.xy)-rect.zw;\n'+
+                '	if(dist.x<0.0 && dist.y<0.0)\n'+
+                '		return max(dist.x,dist.y)-border;\n'+
+                '	return length(max(dist,vec2(0.0)))-border;\n'+
+                '}\n'+
+		        sdfDrawObjectShader,
 		    depthWrite: false
 	    } );
 	    return createFullScreenScene(shader);
@@ -105,3 +141,4 @@ var SDF = function(size){
         return self.pingpong.current();
     }
 }
+
