@@ -1,225 +1,211 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<title>three.js webgl - render-to-texture</title>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<style>
-			body {
-				color: #ffffff;
-				font-family:Monospace;
-				font-size:13px;
-				text-align:center;
-				font-weight: bold;
-				background-color: #000000;
-				margin: 0px;
-				overflow: hidden;
-			}
+    <head>
+        <title>SDF-trace</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <style>
+            body {
+                color: #ffffff;
+                font-family:Monospace;
+                font-size:13px;
+                text-align:center;
+                font-weight: bold;
+                background-color: #000000;
+                margin: 0px;
+                overflow: hidden;
+            }
 
-			#info {
-				position: absolute;
-				top: 0px; width: 100%;
-				padding: 5px;
-			}
-			#perf {
-				position: absolute;
-				top: 20px; width: 100%;
-				padding: 5px;
-			}
+            #info {
+                position: absolute;
+                top: 0px; width: 100%;
+                padding: 5px;
+            }
+            #perf {
+                position: absolute;
+                top: 20px; width: 100%;
+                padding: 5px;
+            }
 
-			a {
-				color: #ffffff;
-			}
+            a {
+                color: #ffffff;
+            }
 
-		</style>
-	</head>
-	<body>
+        </style>
+    </head>
+    <body>
 
-		<div id="container"></div>
-		<div id="info"><a href="http://threejs.org" target="_blank">three.js</a> render-to-texture webgl example</div>
-		<div id="perf">0 rays/sec</div>
+        <div id="container"></div>
+        <div id="info"><a href="http://github.com/david-westreicher/sdftrace" target="_blank">SDF-trace</a></div>
+        <div id="perf">0 rays/sec</div>
 
-		<script src="js/libs/three.min.js"></script>
-		<script src="js/libs/Detector.js"></script>
-		<script src="js/libs/stats.min.js"></script>
+        <script src="js/libs/dat.gui.min.js"></script>
+        <script src="js/libs/three.js"></script>
+        <script src="js/libs/Detector.js"></script>
+        <script src="js/libs/stats.min.js"></script>
+        <script id="vertexFullscreen" type="x-shader/x-fragment">
+            varying vec2 vUv;
 
-		<script id="fragmentFillSDF" type="x-shader/x-fragment">
-			uniform sampler2D pingpong;
-            uniform vec3 circle;
-			varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = vec4( position, 1.0 );
+            }
+        </script>
+        <script id="fragmentResetSDF" type="x-shader/x-fragment">
+            uniform float val;
 
-			float getdist(){
-			    return length(gl_FragCoord.xy-circle.xy)-circle.z;
-			}
+            void main() {
+                gl_FragColor = vec4(val,0.0,0.0,1.0);
+            }
+        </script>
+        <script id="fragmentDrawSDF" type="x-shader/x-fragment">
+            uniform sampler2D tex;
+            uniform float size;
+            varying vec2 vUv;
 
-			void main() {
-			    float olddist = texture2D(pingpong, vUv).r;
-			    float dist = getdist();
-			    float newdist = 0.0;
-			    if(olddist<0.0){
-			        if(dist<0.0)
-			            newdist = max(dist,olddist);
-			        else
-			            newdist = max(-dist,olddist);
-			    }else{
-			        if(dist<0.0)
-			            newdist = max(dist,-olddist);
-			        else
-			            newdist = min(dist,olddist);
-			    }
-				gl_FragColor = vec4(newdist,0.0,0.0,1.0);
-			}
-		</script>
-		<script id="fragmentDrawRectSDF" type="x-shader/x-fragment">
-			uniform sampler2D pingpong;
-            uniform vec4 rect;
-            uniform float border;
-			varying vec2 vUv;
+            void main() {
+                float dist = texture2D( tex, vUv ).r;
+                float col = 4.0*dist/size;
+                if(dist<1.0 && dist>-1.0)
+                    gl_FragColor = vec4(1.0);
+                else
+                    gl_FragColor = vec4(0.0,max(-col,0.0),max(col,0.0),1.0);
+            }
+        </script>
+        <script id="vertexShader" type="x-shader/x-vertex">
+            varying vec2 vUv;
 
-			float getdist(){
-			    vec2 dist = abs(gl_FragCoord.xy-rect.xy)-rect.zw;
-			    if(dist.x<0.0 && dist.y<0.0)
-			        return max(dist.x,dist.y)-border;
-			    return length(max(dist,vec2(0.0)))-border;
-			}
-
-			void main() {
-			    float olddist = texture2D(pingpong, vUv).r;
-			    float dist = getdist();
-			    float newdist = 0.0;
-			    if(olddist<0.0){
-			        if(dist<0.0)
-			            newdist = max(dist,olddist);
-			        else
-			            newdist = max(-dist,olddist);
-			    }else{
-			        if(dist<0.0)
-			            newdist = max(dist,-olddist);
-			        else
-			            newdist = min(dist,olddist);
-			    }
-				gl_FragColor = vec4(newdist,0.0,0.0,1.0);
-			}
-		</script>
-		<script id="vertexFullscreen" type="x-shader/x-fragment">
-			varying vec2 vUv;
-
-			void main() {
-				vUv = uv;
-				gl_Position = vec4( position, 1.0 );
-			}
-		</script>
-		<script id="fragmentResetSDF" type="x-shader/x-fragment">
-			uniform float val;
-
-			void main() {
-				gl_FragColor = vec4(val,0.0,0.0,1.0);
-			}
-		</script>
-		<script id="fragmentDrawSDF" type="x-shader/x-fragment">
-			uniform sampler2D tex;
-			uniform float size;
-			varying vec2 vUv;
-
-			void main() {
-				float dist = texture2D( tex, vUv ).r;
-				float col = 4.0*dist/size;
-				if(dist<1.0 && dist>-1.0)
-				    gl_FragColor = vec4(1.0);
-				else
-				    gl_FragColor = vec4(0.0,max(-col,0.0),max(col,0.0),1.0);
-			}
-		</script>
-		<script id="vertexShader" type="x-shader/x-vertex">
-			varying vec2 vUv;
-
-			void main() {
-				vUv = uv;
-				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-			}
-		</script>
-		<script id="vertexLine" type="x-shader/x-vertex">
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+            }
+        </script>
+        <script id="vertexLine" type="x-shader/x-vertex">
             uniform sampler2D posTex1;
             uniform sampler2D posTex2;
             varying float bias;
             //varying vec2 dir;
 
-			void main() {
-			    vec2 pos1 = texture2D(posTex1, position.xy).xy;
-			    vec2 pos2 = texture2D(posTex2, position.xy).xy;
-			    vec2 realpos = mix(pos1.xy,pos2.xy,position.z);
-			    vec2 diff = pos1-pos2;
-			    //dir = texture2D(posTex2, position.xy).zw;
-			    bias = length(diff)/max(abs(diff.x),abs(diff.y));
-				gl_Position = projectionMatrix * modelViewMatrix * vec4( realpos,0.0, 1.0 );
-			}
-		</script>
-		<script id="fragmentLine" type="x-shader/x-fragment">
+            void main() {
+                vec2 pos1 = texture2D(posTex1, position.xy).xy;
+                vec2 pos2 = texture2D(posTex2, position.xy).xy;
+                vec2 realpos = mix(pos1.xy,pos2.xy,position.z);
+                vec2 diff = pos1-pos2;
+                //dir = texture2D(posTex2, position.xy).zw;
+                bias = length(diff)/max(abs(diff.x),abs(diff.y));
+                gl_Position = projectionMatrix * modelViewMatrix * vec4( realpos,0.0, 1.0 );
+            }
+        </script>
+        <script id="fragmentLine" type="x-shader/x-fragment">
             varying float bias;
             //varying vec2 dir;
 
-			void main() {
-				//gl_FragColor = vec4(dir/2.0+0.5,0.0,0.001*bias);
-				gl_FragColor = vec4(vec3(1.0)*bias,1.0);
-			}
-		</script>
-		<script id="fragmentRay" type="x-shader/x-fragment">
-			//const vec3 offset = vec3(0.00166,0.0,-0.00166);
-			//const float size = 600.0;
-			uniform sampler2D rayinfo;
-			uniform sampler2D sdf;
-			varying vec2 vUv;
+            void main() {
+                //gl_FragColor = vec4(dir/2.0+0.5,0.0,0.001*bias);
+                gl_FragColor = vec4(vec3(1.0)*bias,1.0);
+            }
+        </script>
+        <script id="fragmentRay" type="x-shader/x-fragment">
+            //const vec3 offset = vec3(0.00166,0.0,-0.00166);
+            //const float size = 600.0;
+            uniform sampler2D rayinfo;
+            uniform sampler2D sdf;
+            varying vec2 vUv;
 
             vec2 getnormal(vec2 pos){
-			    float left = texture2D(sdf,pos+offset.zy).r;
-			    float right = texture2D(sdf,pos+offset.xy).r;
-			    float up = texture2D(sdf,pos+offset.yx).r;
-			    float down = texture2D(sdf,pos+offset.yz).r;
-			    vec2 norm = vec2((right-left), -(down-up));
-			    return normalize(norm);
+                float left = texture2D(sdf,pos+offset.zy).r;
+                float right = texture2D(sdf,pos+offset.xy).r;
+                float up = texture2D(sdf,pos+offset.yx).r;
+                float down = texture2D(sdf,pos+offset.yz).r;
+                vec2 norm = vec2((right-left), -(down-up));
+                return normalize(norm);
             }
 
-			void main() {
-			    vec4 rinfo = texture2D(rayinfo,vUv);
-			    vec2 pos = rinfo.xy;
-			    vec2 dir = rinfo.zw;
-			    vec2 newdir = vec2(0.0,0.0);
-			    for(int i=0;i<30;i++){
-                    if(pos.x<0.0||pos.y<0.0||pos.x>size||pos.y>size)
+            void main() {
+                vec4 rinfo = texture2D(rayinfo,vUv);
+                vec2 pos = rinfo.xy;
+                vec2 dir = rinfo.zw;
+                vec2 newdir = vec2(0.0,0.0);
+                for(int i=0;i<30;i++){
+                    //if(pos.x<0.0||pos.y<0.0||pos.x>size||pos.y>size)
+                        //break;
+                    float val = texture2D(sdf,pos/size).r;
+                    if(val<0.1){
+                        pos-=dir;
+                        newdir = reflect(dir,getnormal(pos/size));
                         break;
-			        float val = texture2D(sdf,pos/size).r;
-			        if(val<0.5){
-			            pos-=dir;
-			            newdir = reflect(dir,getnormal(pos/size));
-			            break;
-			        }
-			        pos+=dir*val;
-			    }
-				gl_FragColor = vec4(pos,newdir);
-			}
-		</script>
-		<script id="initRay" type="x-shader/x-fragment">
-			uniform sampler2D initTex;
-			varying vec2 vUv;
+                    }
+                    pos+=dir*val;
+                }
+                gl_FragColor = vec4(pos,newdir);
+            }
+        </script>
+        <script id="initRay" type="x-shader/x-fragment">
+            uniform sampler2D initTex;
+            varying vec2 vUv;
 
-			void main() {
-				gl_FragColor = texture2D(initTex,vUv);
-				//gl_FragColor = vec4(300.0,300.0,1.0,0.0);
-			}
-		</script>
-		<script id="lightmapExposure" type="x-shader/x-fragment">
-			uniform sampler2D tex;
-			uniform float exposure;
-			varying vec2 vUv;
+            void main() {
+                gl_FragColor = texture2D(initTex,vUv);
+                //gl_FragColor = vec4(300.0,300.0,1.0,0.0);
+            }
+        </script>
+        <script id="lightmapExposure" type="x-shader/x-fragment">
+            uniform sampler2D tex;
+            uniform float exposure;
+            varying vec2 vUv;
 
-			void main() {
-			    vec4 col = texture2D(tex,vUv);
-				gl_FragColor = vec4(pow(col.rgb*exposure,vec3(1.0/2.2)),col.a);
-			}
-		</script>
+            void main() {
+                vec4 col = texture2D(tex,vUv);
+                gl_FragColor = vec4(pow(col.rgb*exposure,vec3(1.0/2.2)),col.a);
+            }
+        </script>
 
-		<script src="js/sdf.js"></script>
-		<script src="js/fastliner.js"></script>
-		<script src="js/renderer.js"></script>
-	</body>
+        <script src="js/sdf.js"></script>
+        <script src="js/fastliner.js"></script>
+        <script src="js/renderer.js"></script>
+        <script>
+            var DatValues = function() {
+                this.bounces = 10;
+                this.exposure = 1.0;
+                this.usebounds = true;
+                this.showsdf = false;
+                this.randomize = function(){
+                    isinit = true;
+                    fastliner.clear();
+                }
+            };
+
+            var values = new DatValues();
+            window.onload = function() {
+                var gui = new dat.GUI();
+                gui.add(values, 'bounces').
+                    min(1).max(50).step(1).
+                    onChange(function(val){
+                        fastliner.setBounces(val);
+                        fastliner.clear();
+                    });
+                gui.add(values, 'exposure').
+                    min(0.0).max(1.0).step(0.01).
+                    onChange(function(val){
+                        exposure = val/10.0;
+                    });
+                gui.add(values, 'usebounds').
+                    onChange(function(val){
+                        useBounds = val;
+                        isinit = true;
+                        fastliner.clear();
+                    });
+                gui.add(values, 'showsdf').
+                    onChange(function(val){
+                        showSDF(val);
+                    });
+                gui.add(values, 'randomize');
+                fastliner.setBounces(values.bounces);
+                exposure = values.exposure/10.0;
+            };
+            setInterval(function(){
+                perfInfo.innerHTML = fastliner.getRaysPerSec()+" rays/sec";
+            },1000);
+        </script>
+    </body>
 </html>

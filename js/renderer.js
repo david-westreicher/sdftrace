@@ -2,133 +2,150 @@ if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 var stats, perfInfo;
 var scene, cam, renderer;
 var mouseX = 0, mouseY = 0;
-var windowHalfX = window.innerWidth / 2;
-var windowHalfY = window.innerHeight / 2;
 var fastliner;
 var sdfuniforms;
+var sdfquad,lightAccumBuffer;
 
 function init() {
-	cam = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, -10000, 10000 );
+    renderer = new THREE.WebGLRenderer({preserveDrawingBuffer:true});
+    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.autoClearColor = false;
+    renderer.setClearColor(0x000000,0.0);
 
-    fastliner = new FastLiner(size);
+    cam = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, -10000, 10000 );
+
+    fastliner = new FastLiner(renderer, size);
     lightmapUs = {
-		tex: { type: "t", value: fastliner.getTex() },
-		exposure: { type: "f", value: 1.0 },
+        tex: { type: "t", value: fastliner.getTex() },
+        exposure: { type: "f", value: 1.0 },
     }
-	var quad = new THREE.Mesh( 
-	    new THREE.PlaneBufferGeometry(size,size),
-	    new THREE.ShaderMaterial({
-	        uniforms: lightmapUs,
-		    vertexShader: document.getElementById( 'vertexShader' ).textContent,
-		    fragmentShader: document.getElementById( 'lightmapExposure' ).textContent,
-	        transparent:true,
-	        depthWrite: false,
-	        depthTest: false,
-	    }));
+    lightAccumBuffer = new THREE.Mesh( 
+        new THREE.PlaneBufferGeometry(size,size),
+        new THREE.ShaderMaterial({
+            uniforms: lightmapUs,
+            vertexShader: document.getElementById( 'vertexShader' ).textContent,
+            fragmentShader: document.getElementById( 'lightmapExposure' ).textContent,
+            transparent:true,
+            depthWrite: false,
+            depthTest: false,
+        }));
     sdfuniforms = {
-		tex: { type: "t", value: null },
-		size: { type: "f", value: size },
-	}
-	var sdfmaterial = new THREE.ShaderMaterial( {
-		uniforms: sdfuniforms,
-		vertexShader: document.getElementById( 'vertexShader' ).textContent,
-		fragmentShader: document.getElementById( 'fragmentDrawSDF' ).textContent,
-		depthWrite: false
-	} );
-	sdfquad = new THREE.Mesh( 
-	    new THREE.PlaneBufferGeometry(size,size),
-	    sdfmaterial);
+        tex: { type: "t", value: null },
+        size: { type: "f", value: size },
+    }
+    var sdfmaterial = new THREE.ShaderMaterial( {
+        uniforms: sdfuniforms,
+        vertexShader: document.getElementById( 'vertexShader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentDrawSDF' ).textContent,
+        depthWrite: false
+    } );
+    sdfquad = new THREE.Mesh( 
+        new THREE.PlaneBufferGeometry(size,size),
+        sdfmaterial);
 
-	scene = new THREE.Scene();
-    scene.add(quad);
-	scene.add(sdfquad);
+    scene = new THREE.Scene();
+    scene.add(lightAccumBuffer);
+    scene.add(sdfquad);
 
-	renderer = new THREE.WebGLRenderer({preserveDrawingBuffer:true});
-	renderer.setPixelRatio( window.devicePixelRatio );
-	renderer.setSize( window.innerWidth, window.innerHeight );
-	renderer.autoClearColor = false;
-	renderer.setClearColor(0x000000,0.0);
 
-	var container = document.getElementById( 'container' );
-	container.appendChild( renderer.domElement );
+    var container = document.getElementById( 'container' );
+    container.appendChild( renderer.domElement );
 
-	perfInfo = document.getElementById( 'perf' );
-	stats = new Stats();
-	stats.domElement.style.position = 'absolute';
-	stats.domElement.style.top = '0px';
-	container.appendChild( stats.domElement );
+    perfInfo = document.getElementById( 'perf' );
+    stats = new Stats();
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.top = '0px';
+    container.appendChild( stats.domElement );
 
-	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-	document.addEventListener( 'mousedown', onDocumentMouseDown, false );
-	document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+    container.addEventListener( 'mousemove', onDocumentMouseMove, false );
+    container.addEventListener( 'mousedown', onDocumentMouseDown, false );
+    container.addEventListener( 'mouseup', onDocumentMouseUp, false );
+    window.addEventListener( 'resize', onResize, false );
 }
 
-var lastRayNum = 0;
-setInterval(function(){
-    var rayNum = fastliner.getSampleNum();
-    perfInfo.innerHTML = 10*(rayNum-lastRayNum)+" rays/sec";
-    lastRayNum = rayNum;
-},100);
+
+function onResize(event){
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    cam.left = -window.innerWidth/2;
+    cam.right = window.innerWidth/2;
+    cam.top = window.innerHeight/2;
+    cam.bottom = -window.innerHeight/2;
+    cam.updateProjectionMatrix();
+}
 
 var mouseDown = false;
 function onDocumentMouseDown( event ) {
     mouseDown = true;
-	fastliner.reset(renderer,mouseX,mouseY);
-    lastRayNum = 0;
+    fastliner.reset(mouseX,mouseY);
 }
 function onDocumentMouseUp( event ) {
     mouseDown = false;
 }
 function onDocumentMouseMove( event ) {
-	mouseX = ( event.clientX - windowHalfX );
-	mouseY = ( event.clientY - windowHalfY );
-	if(mouseDown){
-	    fastliner.reset(renderer,mouseX,mouseY);
-        lastRayNum = 0;
+    mouseX = ( event.clientX - window.innerWidth / 2 );
+    mouseY = ( event.clientY - window.innerHeight / 2 );
+    if(mouseDown){
+        fastliner.reset(mouseX,mouseY);
     }
 }
 
 function animate() {
-	requestAnimationFrame( animate );
-	render();
-	stats.update();
+    requestAnimationFrame( animate );
+    render();
+    stats.update();
 }
 
 var size = 800;
+var exposure = 0.1;
 var sdf = new SDF(size);
 var isinit = true;
+var useBounds = true;
 init();
 animate();
 
+function showSDF(istrue){
+    if(istrue){
+        lightAccumBuffer.visible = false;
+        sdfquad.visible = true;
+    }else{
+        lightAccumBuffer.visible = true;
+        sdfquad.visible = false;
+    }
+}
 var test = 0;
 function render() {
-	renderer.clear();
+    renderer.clear();
     if(isinit){
         sdf.clear(renderer);
-	    sdf.drawRect(renderer,0,0,size,1);
-	    sdf.drawRect(renderer,0,size,size,1);
-	    sdf.drawRect(renderer,0,0,1,size);
-	    sdf.drawRect(renderer,size,0,1,size);
-        for(var i=0;i<10;i++){
+        for(var i=0;i<20;i++){
+            var subtractive = Math.random()>0.5;
             if(Math.random()>0.5)
-	            sdf.drawCircle(renderer,
-	                Math.random()*size,
-	                Math.random()*size,
-	                (Math.random()+1)*size/10.0);
-	        else
-	            sdf.drawRect(renderer,
-	                Math.random()*size,
-	                Math.random()*size,
-	                Math.random()*size/10.0,
-	                Math.random()*size/10.0,
-	                Math.random()*20);
+                sdf.drawCircle(renderer,
+                    Math.random()*size,
+                    Math.random()*size,
+                    (Math.random()+1)*size/10.0,
+                    subtractive);
+            else
+                sdf.drawRect(renderer,
+                    Math.random()*size,
+                    Math.random()*size,
+                    Math.random()*size/10.0,
+                    Math.random()*size/10.0,
+                    Math.random()*20,
+                    subtractive);
         }
-	    //sdf.draw(renderer,cam);
-	    sdfuniforms.tex.value = sdf.getTex();
+        if(useBounds){
+            sdf.drawRect(renderer,0,0,size,1);
+            sdf.drawRect(renderer,0,size,size,1);
+            sdf.drawRect(renderer,0,0,1,size);
+            sdf.drawRect(renderer,size,0,1,size);
+            sdfuniforms.tex.value = sdf.getTex();
+        }
         isinit = false;
     }
-	fastliner.update(renderer,sdf.getTex());
-    lightmapUs.exposure.value = size/fastliner.getSampleNum();
-	renderer.render(scene,cam);
+    fastliner.update(sdf.getTex());
+    lightmapUs.exposure.value = fastliner.bounces*exposure*size/fastliner.getSampleNum();
+    renderer.render(scene,cam);
 }
 
