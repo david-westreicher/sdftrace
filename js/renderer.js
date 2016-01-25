@@ -2,15 +2,19 @@ if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 var stats, perfInfo;
 var scene, cam, renderer;
 var mouseX = 0, mouseY = 0;
-var windowHalfX = window.innerWidth / 2;
-var windowHalfY = window.innerHeight / 2;
 var fastliner;
 var sdfuniforms;
 
 function init() {
+	renderer = new THREE.WebGLRenderer({preserveDrawingBuffer:true});
+	renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.autoClearColor = false;
+	renderer.setClearColor(0x000000,0.0);
+
 	cam = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, -10000, 10000 );
 
-    fastliner = new FastLiner(size);
+    fastliner = new FastLiner(renderer, size);
     lightmapUs = {
 		tex: { type: "t", value: fastliner.getTex() },
 		exposure: { type: "f", value: 1.0 },
@@ -41,13 +45,8 @@ function init() {
 
 	scene = new THREE.Scene();
     scene.add(quad);
-	scene.add(sdfquad);
+	//scene.add(sdfquad);
 
-	renderer = new THREE.WebGLRenderer({preserveDrawingBuffer:true});
-	renderer.setPixelRatio( window.devicePixelRatio );
-	renderer.setSize( window.innerWidth, window.innerHeight );
-	renderer.autoClearColor = false;
-	renderer.setClearColor(0x000000,0.0);
 
 	var container = document.getElementById( 'container' );
 	container.appendChild( renderer.domElement );
@@ -58,33 +57,35 @@ function init() {
 	stats.domElement.style.top = '0px';
 	container.appendChild( stats.domElement );
 
-	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-	document.addEventListener( 'mousedown', onDocumentMouseDown, false );
-	document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+	container.addEventListener( 'mousemove', onDocumentMouseMove, false );
+	container.addEventListener( 'mousedown', onDocumentMouseDown, false );
+	container.addEventListener( 'mouseup', onDocumentMouseUp, false );
+	window.addEventListener( 'resize', onResize, false );
 }
 
-var lastRayNum = 0;
-setInterval(function(){
-    var rayNum = fastliner.getSampleNum();
-    perfInfo.innerHTML = 10*(rayNum-lastRayNum)+" rays/sec";
-    lastRayNum = rayNum;
-},100);
+
+function onResize(event){
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    cam.left = -window.innerWidth/2;
+    cam.right = window.innerWidth/2;
+    cam.top = window.innerHeight/2;
+    cam.bottom = -window.innerHeight/2;
+    cam.updateProjectionMatrix();
+}
 
 var mouseDown = false;
 function onDocumentMouseDown( event ) {
     mouseDown = true;
-	fastliner.reset(renderer,mouseX,mouseY);
-    lastRayNum = 0;
+	fastliner.reset(mouseX,mouseY);
 }
 function onDocumentMouseUp( event ) {
     mouseDown = false;
 }
 function onDocumentMouseMove( event ) {
-	mouseX = ( event.clientX - windowHalfX );
-	mouseY = ( event.clientY - windowHalfY );
+	mouseX = ( event.clientX - window.innerWidth / 2 );
+	mouseY = ( event.clientY - window.innerHeight / 2 );
 	if(mouseDown){
-	    fastliner.reset(renderer,mouseX,mouseY);
-        lastRayNum = 0;
+	    fastliner.reset(mouseX,mouseY);
     }
 }
 
@@ -95,6 +96,7 @@ function animate() {
 }
 
 var size = 800;
+var exposure = 0.1;
 var sdf = new SDF(size);
 var isinit = true;
 init();
@@ -127,8 +129,8 @@ function render() {
 	    sdfuniforms.tex.value = sdf.getTex();
         isinit = false;
     }
-	fastliner.update(renderer,sdf.getTex());
-    lightmapUs.exposure.value = size/fastliner.getSampleNum();
+	fastliner.update(sdf.getTex());
+    lightmapUs.exposure.value = fastliner.bounces*exposure*size/fastliner.getSampleNum();
 	renderer.render(scene,cam);
 }
 

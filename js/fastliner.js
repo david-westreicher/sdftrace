@@ -6,9 +6,10 @@ function createFullScreenScene(shader){
 	return tmpScene;
 }
 
-var FastLiner = function(size){
-    var datasize = 128;
+var FastLiner = function(renderer,size){
     var self = this;
+    self.bounces = 10;
+    var datasize = 64;
 	var rtCam = new THREE.OrthographicCamera( size / - 2, size / 2, size / 2, size / - 2, -10000, 10000 );
 	var renderTarget = new THREE.WebGLRenderTarget(size,size, { 
 	    depthBuffer: false,
@@ -91,7 +92,7 @@ var FastLiner = function(size){
 
     var sampleNum =0;
     var mid = [size/2,size/2];
-    self.update = function(renderer,sdftex){
+    self.update = function(sdftex){
         for(var i = 0;i<initTexData.length;i+=4){
             var angle = Math.random()*2*Math.PI;
             var angle2 = Math.random()*2*Math.PI;
@@ -100,13 +101,13 @@ var FastLiner = function(size){
             initTexData[i+1] = mid[1]+Math.sin(angle2)*radius;
             initTexData[i+2] = Math.cos(angle);
             initTexData[i+3] = Math.sin(angle);
-            initTexData[i+2] = Math.cos(0);
-            initTexData[i+3] = Math.sin(0);
+            /*initTexData[i+2] = Math.cos(0);
+            initTexData[i+3] = Math.sin(0);*/
         }
         initTex.needsUpdate = true;
 	    renderer.render(initPass,rtCam,posTex1,true);
 
-        for(var i=0;i<2;i++){
+        for(var i=0;i<self.bounces;i++){
             rayuniforms.rayinfo.value = posTex1;
             rayuniforms.sdf.value = sdftex;
 	        renderer.render(rayPass,rtCam,posTex2,true);
@@ -114,8 +115,8 @@ var FastLiner = function(size){
 	        var tmp = posTex1;
 	        posTex1 = posTex2;
 	        posTex2 = tmp;
-	        sampleNum+=initTexData.length;
 	    }
+	    sampleNum+=datasize*datasize*self.bounces;
     }
     self.getTex = function(){
         return renderTarget;
@@ -123,10 +124,23 @@ var FastLiner = function(size){
     self.getSampleNum = function(){
         return sampleNum;
     }
-    self.reset = function(renderer,x,y){
+    self.reset = function(x,y){
         mid[0] = x+size/2;
         mid[1] = -y+size/2;
+        self.clear();
+    }
+    self.setBounces = function(bounces){
+        self.bounces = bounces;
+    }
+    var lastSampleNum = 0;
+    self.clear = function(){
         renderer.clearTarget(renderTarget,true,false,false);
         sampleNum = 0;
+        lastSampleNum = 0;
+    }
+    self.getRaysPerSec = function(){
+        var samples = sampleNum-lastSampleNum;
+        lastSampleNum = sampleNum;
+        return samples;
     }
 }
