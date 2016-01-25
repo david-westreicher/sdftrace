@@ -4,6 +4,7 @@ var scene, cam, renderer;
 var mouseX = 0, mouseY = 0;
 var fastliner;
 var sdfuniforms;
+var sdfquad,lightAccumBuffer;
 
 function init() {
     renderer = new THREE.WebGLRenderer({preserveDrawingBuffer:true});
@@ -19,7 +20,7 @@ function init() {
         tex: { type: "t", value: fastliner.getTex() },
         exposure: { type: "f", value: 1.0 },
     }
-    var quad = new THREE.Mesh( 
+    lightAccumBuffer = new THREE.Mesh( 
         new THREE.PlaneBufferGeometry(size,size),
         new THREE.ShaderMaterial({
             uniforms: lightmapUs,
@@ -44,8 +45,8 @@ function init() {
         sdfmaterial);
 
     scene = new THREE.Scene();
-    scene.add(quad);
-    //scene.add(sdfquad);
+    scene.add(lightAccumBuffer);
+    scene.add(sdfquad);
 
 
     var container = document.getElementById( 'container' );
@@ -99,34 +100,48 @@ var size = 800;
 var exposure = 0.1;
 var sdf = new SDF(size);
 var isinit = true;
+var useBounds = true;
 init();
 animate();
 
+function showSDF(istrue){
+    if(istrue){
+        lightAccumBuffer.visible = false;
+        sdfquad.visible = true;
+    }else{
+        lightAccumBuffer.visible = true;
+        sdfquad.visible = false;
+    }
+}
 var test = 0;
 function render() {
     renderer.clear();
     if(isinit){
         sdf.clear(renderer);
-        sdf.drawRect(renderer,0,0,size,1);
-        sdf.drawRect(renderer,0,size,size,1);
-        sdf.drawRect(renderer,0,0,1,size);
-        sdf.drawRect(renderer,size,0,1,size);
-        for(var i=0;i<10;i++){
+        for(var i=0;i<20;i++){
+            var subtractive = Math.random()>0.5;
             if(Math.random()>0.5)
                 sdf.drawCircle(renderer,
                     Math.random()*size,
                     Math.random()*size,
-                    (Math.random()+1)*size/10.0);
+                    (Math.random()+1)*size/10.0,
+                    subtractive);
             else
                 sdf.drawRect(renderer,
                     Math.random()*size,
                     Math.random()*size,
                     Math.random()*size/10.0,
                     Math.random()*size/10.0,
-                    Math.random()*20);
+                    Math.random()*20,
+                    subtractive);
         }
-        //sdf.draw(renderer,cam);
-        sdfuniforms.tex.value = sdf.getTex();
+        if(useBounds){
+            sdf.drawRect(renderer,0,0,size,1);
+            sdf.drawRect(renderer,0,size,size,1);
+            sdf.drawRect(renderer,0,0,1,size);
+            sdf.drawRect(renderer,size,0,1,size);
+            sdfuniforms.tex.value = sdf.getTex();
+        }
         isinit = false;
     }
     fastliner.update(sdf.getTex());

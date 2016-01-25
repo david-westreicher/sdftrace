@@ -25,23 +25,29 @@ var PingPong = function(){
 };
 
 var sdfDrawObjectShader = ''+
+    'uniform float sign;\n'+
     'uniform sampler2D pingpong;\n'+
     'varying vec2 vUv;\n'+
     '\n'+
     'void main() {\n'+
     '    float olddist = texture2D(pingpong, vUv).r;\n'+
     '    float dist = getdist();\n'+
-    '    float newdist = 0.0;\n'+
-    '    if(olddist<0.0){\n'+
-    '        if(dist<0.0)\n'+
-    '            newdist = max(dist,olddist);\n'+
-    '        else\n'+
-    '            newdist = max(-dist,olddist);\n'+
+    '    float newdist = olddist;\n'+
+    '    if(sign>0.0){\n'+
+    '       if(olddist<0.0){\n'+
+    '           if(dist<0.0)\n'+
+    '               newdist = max(dist,olddist);\n'+
+    '           else\n'+
+    '               newdist = max(-dist,olddist);\n'+
+    '       }else{\n'+
+    '           if(dist<0.0)\n'+
+    '               newdist = max(dist,-olddist);\n'+
+    '           else\n'+
+    '               newdist = min(dist,olddist);\n'+
+    '       }\n'+
     '    }else{\n'+
-    '        if(dist<0.0)\n'+
-    '            newdist = max(dist,-olddist);\n'+
-    '        else\n'+
-    '            newdist = min(dist,olddist);\n'+
+    '       if(olddist<0.0 || dist<0.0)\n'+
+    '           newdist = max(-dist,olddist);\n'+
     '    }\n'+
     '    gl_FragColor = vec4(newdist,0.0,0.0,1.0);\n'+
     '}\n';
@@ -65,6 +71,7 @@ var SDF = function(size){
     function makeDrawCirclePass(){
         self.drawCircleUs = {
             pingpong: { type: "t", value: self.pingpong.current() },
+            sign: {type:"f", value: 1.0},
             circle: {type:"v3", value: new THREE.Vector3(size/2,size/2,size/2)}
         }
         var shader = new THREE.ShaderMaterial( {
@@ -84,6 +91,7 @@ var SDF = function(size){
     function makeDrawRectPass(){
         self.drawRectUs = {
             pingpong: { type: "t", value: self.pingpong.current() },
+            sign: {type:"f", value: 1.0},
             rect: {type:"v4", value: new THREE.Vector4(size/2,size/2,size/2,size/2)},
             border: {type:"f", value: 0.0}
         }
@@ -121,13 +129,15 @@ var SDF = function(size){
         renderer.render( self.resetPass, self.dummycam, self.pingpong.current());
     }
 
-    self.drawCircle = function(renderer,x,y,size){
+    self.drawCircle = function(renderer,x,y,size,subtractive){
+        self.drawCircleUs.sign.value = subtractive?1.0:-1.0;
         self.drawCircleUs.circle.value.set(x,y,size);
         self.drawCircleUs.pingpong.value = self.pingpong.current();
         renderer.render( self.drawCirclePass, self.dummycam, self.pingpong.next());
     }
 
-    self.drawRect = function(renderer,x,y,width,height,border){
+    self.drawRect = function(renderer,x,y,width,height,border,subtractive){
+        self.drawRectUs.sign.value = subtractive?-1.0:1.0;
         self.drawRectUs.rect.value.set(x,y,width,height);
         self.drawRectUs.pingpong.value = self.pingpong.current();
         if(!border)

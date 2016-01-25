@@ -167,6 +167,8 @@
             var DatValues = function() {
                 this.bounces = 10;
                 this.exposure = 1.0;
+                this.usebounds = true;
+                this.showsdf = false;
                 this.randomize = function(){
                     isinit = true;
                     fastliner.clear();
@@ -186,6 +188,16 @@
                     min(0.0).max(1.0).step(0.01).
                     onChange(function(val){
                         exposure = val/10.0;
+                    });
+                gui.add(values, 'usebounds').
+                    onChange(function(val){
+                        useBounds = val;
+                        isinit = true;
+                        fastliner.clear();
+                    });
+                gui.add(values, 'showsdf').
+                    onChange(function(val){
+                        showSDF(val);
                     });
                 gui.add(values, 'randomize');
                 fastliner.setBounces(values.bounces);
