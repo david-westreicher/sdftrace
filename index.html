@@ -202,6 +202,7 @@
                 gui.add(values, 'randomize');
                 fastliner.setBounces(values.bounces);
                 exposure = values.exposure/10.0;
+                showSDF(false);
             };
             setInterval(function(){
                 perfInfo.innerHTML = fastliner.getRaysPerSec()+" rays/sec";
