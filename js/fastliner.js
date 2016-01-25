@@ -1,45 +1,45 @@
 function createFullScreenScene(shader){
-	var plane = new THREE.PlaneBufferGeometry(2,2);
-	var quad = new THREE.Mesh( plane, shader );
-	var tmpScene = new THREE.Scene();
-	tmpScene.add( quad );
-	return tmpScene;
+    var plane = new THREE.PlaneBufferGeometry(2,2);
+    var quad = new THREE.Mesh( plane, shader );
+    var tmpScene = new THREE.Scene();
+    tmpScene.add( quad );
+    return tmpScene;
 }
 
 var FastLiner = function(renderer,size){
     var self = this;
     self.bounces = 10;
     var datasize = 64;
-	var rtCam = new THREE.OrthographicCamera( size / - 2, size / 2, size / 2, size / - 2, -10000, 10000 );
-	var renderTarget = new THREE.WebGLRenderTarget(size,size, { 
-	    depthBuffer: false,
-	    stencilBuffer: false,
-	    minFilter: THREE.NearestFilter,
-	    magFilter: THREE.NearestFilter,
-	    format: THREE.RGBAFormat,
-	    type:THREE.FloatType
-	});
+    var rtCam = new THREE.OrthographicCamera( size / - 2, size / 2, size / 2, size / - 2, -10000, 10000 );
+    var renderTarget = new THREE.WebGLRenderTarget(size,size, { 
+        depthBuffer: false,
+        stencilBuffer: false,
+        minFilter: THREE.NearestFilter,
+        magFilter: THREE.NearestFilter,
+        format: THREE.RGBAFormat,
+        type:THREE.FloatType
+    });
     var initTexData = new Float32Array(datasize*datasize*4);
     var initTex = new THREE.DataTexture(initTexData, datasize, datasize, THREE.RGBAFormat, THREE.FloatType);
     var randData = new Float32Array(datasize*datasize*4);
     var randTex = new THREE.DataTexture(randData, datasize, datasize, THREE.RGBAFormat, THREE.FloatType);
     //TODO use randomness for diffusnes
-	var posTex1 = new THREE.WebGLRenderTarget(datasize, datasize, { 
-	    depthBuffer: false,
-	    stencilBuffer: false,
-	    minFilter: THREE.NearestFilter,
-	    magFilter: THREE.NearestFilter,
-	    format: THREE.RGBAFormat,
-	    type:THREE.FloatType
-	});
-	var posTex2 = new THREE.WebGLRenderTarget(datasize, datasize, { 
-	    depthBuffer: false,
-	    stencilBuffer: false,
-	    minFilter: THREE.NearestFilter,
-	    magFilter: THREE.NearestFilter,
-	    format: THREE.RGBAFormat,
-	    type:THREE.FloatType
-	});
+    var posTex1 = new THREE.WebGLRenderTarget(datasize, datasize, { 
+        depthBuffer: false,
+        stencilBuffer: false,
+        minFilter: THREE.NearestFilter,
+        magFilter: THREE.NearestFilter,
+        format: THREE.RGBAFormat,
+        type:THREE.FloatType
+    });
+    var posTex2 = new THREE.WebGLRenderTarget(datasize, datasize, { 
+        depthBuffer: false,
+        stencilBuffer: false,
+        minFilter: THREE.NearestFilter,
+        magFilter: THREE.NearestFilter,
+        format: THREE.RGBAFormat,
+        type:THREE.FloatType
+    });
     var geometry = new THREE.Geometry();
     var vertindex = 0;
     for(var x=0;x<datasize;x++)
@@ -47,18 +47,18 @@ var FastLiner = function(renderer,size){
             for(var i=0;i<2;i++)
                 geometry.vertices.push(new THREE.Vector3(x/datasize,y/datasize,i));
 
-	var lineShader = new THREE.ShaderMaterial( {
-		uniforms: {
-		    posTex1: {type: "t", value: posTex1},
-		    posTex2: {type: "t", value: posTex2},
-		},
-		vertexShader: document.getElementById( 'vertexLine' ).textContent,
-		fragmentShader: document.getElementById( 'fragmentLine' ).textContent,
-		depthWrite: false,
-		depthTest: false,
-		transparent: true,
-		blending: THREE.AdditiveBlending
-	} );
+    var lineShader = new THREE.ShaderMaterial( {
+        uniforms: {
+            posTex1: {type: "t", value: posTex1},
+            posTex2: {type: "t", value: posTex2},
+        },
+        vertexShader: document.getElementById( 'vertexLine' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentLine' ).textContent,
+        depthWrite: false,
+        depthTest: false,
+        transparent: true,
+        blending: THREE.AdditiveBlending
+    } );
     var lines = new THREE.LineSegments(geometry,lineShader);
     lines.position.x = -size/2;
     lines.position.y = -size/2;
@@ -68,26 +68,26 @@ var FastLiner = function(renderer,size){
 
 
     var rayuniforms = {
-		rayinfo: { type: "t", value: null },
-		sdf: { type: "t", value: null },
+        rayinfo: { type: "t", value: null },
+        sdf: { type: "t", value: null },
     }
-	var rayShader = new THREE.ShaderMaterial( {
-		uniforms: rayuniforms,
-		vertexShader: document.getElementById( 'vertexFullscreen' ).textContent,
-		fragmentShader: 
-		    "const vec3 offset = vec3("+(1.0/size)+",0,"+(-1.0/size)+");\n"+
-		    "const float size = "+size+".0;\n"+
-		    document.getElementById( 'fragmentRay' ).textContent,
-		depthWrite: false
-	} );
+    var rayShader = new THREE.ShaderMaterial( {
+        uniforms: rayuniforms,
+        vertexShader: document.getElementById( 'vertexFullscreen' ).textContent,
+        fragmentShader: 
+            "const vec3 offset = vec3("+(1.0/size)+",0,"+(-1.0/size)+");\n"+
+            "const float size = "+size+".0;\n"+
+            document.getElementById( 'fragmentRay' ).textContent,
+        depthWrite: false
+    } );
     var rayPass = createFullScreenScene(rayShader);
 
-	var initShader = new THREE.ShaderMaterial( {
-		uniforms: { initTex: {type: "t", value:initTex}},
-		vertexShader: document.getElementById( 'vertexFullscreen' ).textContent,
-		fragmentShader: document.getElementById( 'initRay' ).textContent,
-		depthWrite: false
-	} );
+    var initShader = new THREE.ShaderMaterial( {
+        uniforms: { initTex: {type: "t", value:initTex}},
+        vertexShader: document.getElementById( 'vertexFullscreen' ).textContent,
+        fragmentShader: document.getElementById( 'initRay' ).textContent,
+        depthWrite: false
+    } );
     var initPass = createFullScreenScene(initShader);
 
     var sampleNum =0;
@@ -105,18 +105,18 @@ var FastLiner = function(renderer,size){
             initTexData[i+3] = Math.sin(0);*/
         }
         initTex.needsUpdate = true;
-	    renderer.render(initPass,rtCam,posTex1,true);
+        renderer.render(initPass,rtCam,posTex1,true);
 
         for(var i=0;i<self.bounces;i++){
             rayuniforms.rayinfo.value = posTex1;
             rayuniforms.sdf.value = sdftex;
-	        renderer.render(rayPass,rtCam,posTex2,true);
-	        renderer.render(scene,rtCam,renderTarget,true);
-	        var tmp = posTex1;
-	        posTex1 = posTex2;
-	        posTex2 = tmp;
-	    }
-	    sampleNum+=datasize*datasize*self.bounces;
+            renderer.render(rayPass,rtCam,posTex2,true);
+            renderer.render(scene,rtCam,renderTarget,true);
+            var tmp = posTex1;
+            posTex1 = posTex2;
+            posTex2 = tmp;
+        }
+        sampleNum+=datasize*datasize*self.bounces;
     }
     self.getTex = function(){
         return renderTarget;

@@ -6,61 +6,61 @@ var fastliner;
 var sdfuniforms;
 
 function init() {
-	renderer = new THREE.WebGLRenderer({preserveDrawingBuffer:true});
-	renderer.setPixelRatio( window.devicePixelRatio );
-	renderer.setSize( window.innerWidth, window.innerHeight );
-	renderer.autoClearColor = false;
-	renderer.setClearColor(0x000000,0.0);
+    renderer = new THREE.WebGLRenderer({preserveDrawingBuffer:true});
+    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.autoClearColor = false;
+    renderer.setClearColor(0x000000,0.0);
 
-	cam = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, -10000, 10000 );
+    cam = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, -10000, 10000 );
 
     fastliner = new FastLiner(renderer, size);
     lightmapUs = {
-		tex: { type: "t", value: fastliner.getTex() },
-		exposure: { type: "f", value: 1.0 },
+        tex: { type: "t", value: fastliner.getTex() },
+        exposure: { type: "f", value: 1.0 },
     }
-	var quad = new THREE.Mesh( 
-	    new THREE.PlaneBufferGeometry(size,size),
-	    new THREE.ShaderMaterial({
-	        uniforms: lightmapUs,
-		    vertexShader: document.getElementById( 'vertexShader' ).textContent,
-		    fragmentShader: document.getElementById( 'lightmapExposure' ).textContent,
-	        transparent:true,
-	        depthWrite: false,
-	        depthTest: false,
-	    }));
+    var quad = new THREE.Mesh( 
+        new THREE.PlaneBufferGeometry(size,size),
+        new THREE.ShaderMaterial({
+            uniforms: lightmapUs,
+            vertexShader: document.getElementById( 'vertexShader' ).textContent,
+            fragmentShader: document.getElementById( 'lightmapExposure' ).textContent,
+            transparent:true,
+            depthWrite: false,
+            depthTest: false,
+        }));
     sdfuniforms = {
-		tex: { type: "t", value: null },
-		size: { type: "f", value: size },
-	}
-	var sdfmaterial = new THREE.ShaderMaterial( {
-		uniforms: sdfuniforms,
-		vertexShader: document.getElementById( 'vertexShader' ).textContent,
-		fragmentShader: document.getElementById( 'fragmentDrawSDF' ).textContent,
-		depthWrite: false
-	} );
-	sdfquad = new THREE.Mesh( 
-	    new THREE.PlaneBufferGeometry(size,size),
-	    sdfmaterial);
+        tex: { type: "t", value: null },
+        size: { type: "f", value: size },
+    }
+    var sdfmaterial = new THREE.ShaderMaterial( {
+        uniforms: sdfuniforms,
+        vertexShader: document.getElementById( 'vertexShader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentDrawSDF' ).textContent,
+        depthWrite: false
+    } );
+    sdfquad = new THREE.Mesh( 
+        new THREE.PlaneBufferGeometry(size,size),
+        sdfmaterial);
 
-	scene = new THREE.Scene();
+    scene = new THREE.Scene();
     scene.add(quad);
-	//scene.add(sdfquad);
+    //scene.add(sdfquad);
 
 
-	var container = document.getElementById( 'container' );
-	container.appendChild( renderer.domElement );
+    var container = document.getElementById( 'container' );
+    container.appendChild( renderer.domElement );
 
-	perfInfo = document.getElementById( 'perf' );
-	stats = new Stats();
-	stats.domElement.style.position = 'absolute';
-	stats.domElement.style.top = '0px';
-	container.appendChild( stats.domElement );
+    perfInfo = document.getElementById( 'perf' );
+    stats = new Stats();
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.top = '0px';
+    container.appendChild( stats.domElement );
 
-	container.addEventListener( 'mousemove', onDocumentMouseMove, false );
-	container.addEventListener( 'mousedown', onDocumentMouseDown, false );
-	container.addEventListener( 'mouseup', onDocumentMouseUp, false );
-	window.addEventListener( 'resize', onResize, false );
+    container.addEventListener( 'mousemove', onDocumentMouseMove, false );
+    container.addEventListener( 'mousedown', onDocumentMouseDown, false );
+    container.addEventListener( 'mouseup', onDocumentMouseUp, false );
+    window.addEventListener( 'resize', onResize, false );
 }
 
 
@@ -76,23 +76,23 @@ function onResize(event){
 var mouseDown = false;
 function onDocumentMouseDown( event ) {
     mouseDown = true;
-	fastliner.reset(mouseX,mouseY);
+    fastliner.reset(mouseX,mouseY);
 }
 function onDocumentMouseUp( event ) {
     mouseDown = false;
 }
 function onDocumentMouseMove( event ) {
-	mouseX = ( event.clientX - window.innerWidth / 2 );
-	mouseY = ( event.clientY - window.innerHeight / 2 );
-	if(mouseDown){
-	    fastliner.reset(mouseX,mouseY);
+    mouseX = ( event.clientX - window.innerWidth / 2 );
+    mouseY = ( event.clientY - window.innerHeight / 2 );
+    if(mouseDown){
+        fastliner.reset(mouseX,mouseY);
     }
 }
 
 function animate() {
-	requestAnimationFrame( animate );
-	render();
-	stats.update();
+    requestAnimationFrame( animate );
+    render();
+    stats.update();
 }
 
 var size = 800;
@@ -104,33 +104,33 @@ animate();
 
 var test = 0;
 function render() {
-	renderer.clear();
+    renderer.clear();
     if(isinit){
         sdf.clear(renderer);
-	    sdf.drawRect(renderer,0,0,size,1);
-	    sdf.drawRect(renderer,0,size,size,1);
-	    sdf.drawRect(renderer,0,0,1,size);
-	    sdf.drawRect(renderer,size,0,1,size);
+        sdf.drawRect(renderer,0,0,size,1);
+        sdf.drawRect(renderer,0,size,size,1);
+        sdf.drawRect(renderer,0,0,1,size);
+        sdf.drawRect(renderer,size,0,1,size);
         for(var i=0;i<10;i++){
             if(Math.random()>0.5)
-	            sdf.drawCircle(renderer,
-	                Math.random()*size,
-	                Math.random()*size,
-	                (Math.random()+1)*size/10.0);
-	        else
-	            sdf.drawRect(renderer,
-	                Math.random()*size,
-	                Math.random()*size,
-	                Math.random()*size/10.0,
-	                Math.random()*size/10.0,
-	                Math.random()*20);
+                sdf.drawCircle(renderer,
+                    Math.random()*size,
+                    Math.random()*size,
+                    (Math.random()+1)*size/10.0);
+            else
+                sdf.drawRect(renderer,
+                    Math.random()*size,
+                    Math.random()*size,
+                    Math.random()*size/10.0,
+                    Math.random()*size/10.0,
+                    Math.random()*20);
         }
-	    //sdf.draw(renderer,cam);
-	    sdfuniforms.tex.value = sdf.getTex();
+        //sdf.draw(renderer,cam);
+        sdfuniforms.tex.value = sdf.getTex();
         isinit = false;
     }
-	fastliner.update(sdf.getTex());
+    fastliner.update(sdf.getTex());
     lightmapUs.exposure.value = fastliner.bounces*exposure*size/fastliner.getSampleNum();
-	renderer.render(scene,cam);
+    renderer.render(scene,cam);
 }
 
